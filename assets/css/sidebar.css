@@ -1,0 +1,26 @@
+/* Navigation scrolls only when needed; account controls remain visible. */
+.sidebar { height: 100dvh; padding-block: 16px 12px; overflow: hidden; }
+.sidebar .brand { flex-shrink: 0; margin-bottom: 18px; }
+.workspace-label { flex-shrink: 0; margin-bottom: 8px; }
+.sidebar > nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; overscroll-behavior: contain; }
+.sidebar .nav-item { min-height: 38px; padding: 8px 12px; margin: 2px 0; gap: 10px; }
+.nav-item svg { flex-shrink: 0; }
+.sidebar-bottom { flex-shrink: 0; padding-top: 8px; }
+.sidebar-help { display: none; }
+.sidebar .profile-button { padding-block: 8px; }
+.logout-button { min-height: 30px; margin-top: 0; }
+.unread-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 20px; background: #b32738; color: white; font-size: 11px; font-weight: 700; }
+.unread-badge[hidden], .message-alert[hidden] { display: none; }
+.nav-item .unread-badge { margin-left: auto; }
+.message-alert { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; padding: 8px; border-radius: 8px; margin-left: auto; margin-right: 16px; font-size: 12px; }
+.message-alert:focus-visible { outline: 2px solid var(--green); }
+.log-details { overflow-wrap: anywhere; min-width: 180px; }
+.log-user-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px; padding: 0 23px 16px; }
+.log-user-card { display: flex; flex-direction: column; gap: 8px; padding: 20px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); text-decoration: none; overflow-wrap: anywhere; min-width: 0; }
+.log-user-card:hover { background: #f0f8f4; border-color: var(--green); }
+.log-user-card:focus-visible { outline: 3px solid var(--green); outline-offset: 3px; }
+.log-user-email, .log-user-card .muted { font-size: 12px; }
+.log-user-count { font-weight: 650; margin-top: 6px; }
+.log-user-open { color: var(--green); font-weight: 600; margin-top: auto; padding-top: 6px; }
+.log-account-heading { border-block: 1px solid var(--line); flex-wrap: wrap; overflow-wrap: anywhere; }
+@media (max-width: 767px) { .message-alert { margin-right: 0; } }

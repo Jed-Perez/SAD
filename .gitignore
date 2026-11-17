@@ -1,0 +1,10 @@
+config.local.php
+/storage/blueprints/*
+!/storage/blueprints/.gitkeep
+/storage/products/*
+!/storage/products/.gitkeep
+/storage/*.log
+/storage/*.json
+/storage/sessions/
+/.tools/
+/tests/.artifacts/
