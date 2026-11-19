@@ -19,10 +19,12 @@ function handle_users_action(string $action,array $data,array $u): never {
         db()->beginTransaction();
         if($id){
             $existing=query('SELECT * FROM users WHERE id=? FOR UPDATE',[$id])->fetch();if(!$existing) fail('User not found.',404);
+            if($u['role']==='staff' && $existing['role']!=='customer')fail('Staff can manage customers only.',403);
+            if(!$active || $existing['role']!==$role || $existing['email']!==$email)query('DELETE FROM auth_devices WHERE user_id=?',[$id]);
             if($existing['role']!==$role && (query('SELECT COUNT(*) FROM services WHERE customer_id=? OR technician_id=?',[$id,$id])->fetchColumn() || query('SELECT COUNT(*) FROM blueprints WHERE user_id=?',[$id])->fetchColumn() || query('SELECT COUNT(*) FROM messages WHERE customer_id=?',[$id])->fetchColumn())) fail('Keep the role of an account with service, blueprint, or conversation history. Create a separate account for the new role.');
             query('UPDATE users SET name=?,email=?,role=?,phone=?,address=?,active=? WHERE id=?',[...$p,$id]);
         } else {
-            $pw=strval_field($data,'password',200);if(strlen($pw)<10) fail('Use a password with at least 10 characters.');
+            $pw=password_field($data,'password',true);
             query('INSERT INTO users(name,email,role,phone,address,active,password_hash) VALUES(?,?,?,?,?,?,?)',[...$p,password_hash($pw,PASSWORD_DEFAULT)]);
         }
         audit('Saved user',$email);db()->commit();json_out(['ok'=>true]);

@@ -99,6 +99,7 @@ def recovery_browser_checks(page, port, check, mailbox):
     page.locator('#register-name').fill('Browser Recovery')
     page.locator('#login-email').fill('browser-recovery@test.local')
     page.locator('#login-password').fill('Browser-Original-123')
+    page.locator('#confirm-password').fill('Browser-Original-123')
     toggle = page.locator('[data-password-toggle="login-password"]')
     toggle.click()
     check(page.locator('#login-password').get_attribute('type') == 'text', 'Show password works on registration')

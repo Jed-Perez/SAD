@@ -1,0 +1,103 @@
+ALTER TABLE services MODIFY status ENUM('Pending','Scheduled','In Progress','Completed','Cancelled','Approved','Revision Required') NOT NULL DEFAULT 'Pending';
+ALTER TABLE services ADD COLUMN IF NOT EXISTS estimated_completion DATETIME NULL;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS revision INT UNSIGNED NOT NULL DEFAULT 0;
+ALTER TABLE services ADD COLUMN IF NOT EXISTS request_key VARCHAR(80) NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS service_request_key ON services(customer_id,request_key);
+ALTER TABLE blueprints MODIFY status ENUM('Uploaded','Analyzing','Analyzed','Failed','Edited') NOT NULL DEFAULT 'Uploaded';
+ALTER TABLE service_events ADD COLUMN IF NOT EXISTS status VARCHAR(30) NULL;
+ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS request_key VARCHAR(80) NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS movement_request ON stock_movements(user_id,request_key);
+ALTER TABLE products ADD COLUMN IF NOT EXISTS updated_at DATETIME NULL;
+CREATE TABLE IF NOT EXISTS notifications (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,user_id INT UNSIGNED NOT NULL,
+ category VARCHAR(30) NOT NULL,title VARCHAR(180) NOT NULL,body TEXT NOT NULL,
+ target VARCHAR(120) NOT NULL,event_key VARCHAR(160) NOT NULL,read_at DATETIME NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY notification_event(user_id,event_key),INDEX(user_id,read_at,id),
+ FOREIGN KEY(user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS notification_preferences (
+ user_id INT UNSIGNED NOT NULL,category VARCHAR(30) NOT NULL,in_app TINYINT NOT NULL DEFAULT 1,email TINYINT NOT NULL DEFAULT 0,
+ PRIMARY KEY(user_id,category),FOREIGN KEY(user_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS notification_mail (
+ notification_id BIGINT UNSIGNED PRIMARY KEY,status VARCHAR(20) NOT NULL DEFAULT 'Pending',attempts INT NOT NULL DEFAULT 0,
+ FOREIGN KEY(notification_id) REFERENCES notifications(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS technician_hours (
+ technician_id INT UNSIGNED NOT NULL,weekday TINYINT UNSIGNED NOT NULL,start_time TIME NOT NULL,end_time TIME NOT NULL,buffer_minutes INT UNSIGNED NOT NULL DEFAULT 0,
+ PRIMARY KEY(technician_id,weekday),FOREIGN KEY(technician_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS technician_time_off (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,technician_id INT UNSIGNED NOT NULL,starts_at DATETIME NOT NULL,ends_at DATETIME NOT NULL,reason VARCHAR(255) NOT NULL,
+ FOREIGN KEY(technician_id) REFERENCES users(id),INDEX(technician_id,starts_at,ends_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS appointment_requests (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,service_id INT UNSIGNED NOT NULL,requested_by INT UNSIGNED NOT NULL,
+ technician_id INT UNSIGNED NOT NULL,starts_at DATETIME NOT NULL,duration_minutes INT NOT NULL,
+ status VARCHAR(20) NOT NULL DEFAULT 'Pending',reason VARCHAR(1000) NOT NULL DEFAULT '',request_key VARCHAR(80) NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE KEY booking_request(requested_by,request_key),
+ FOREIGN KEY(service_id) REFERENCES services(id),FOREIGN KEY(requested_by) REFERENCES users(id),FOREIGN KEY(technician_id) REFERENCES users(id),INDEX(technician_id,status,starts_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS blueprint_versions (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,blueprint_id INT UNSIGNED NOT NULL,version INT UNSIGNED NOT NULL,
+ author_id INT UNSIGNED NOT NULL,plan LONGTEXT NOT NULL,estimate LONGTEXT NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE KEY plan_version(blueprint_id,version),
+ FOREIGN KEY(blueprint_id) REFERENCES blueprints(id),FOREIGN KEY(author_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS blueprint_reviews (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,version_id INT UNSIGNED NOT NULL,author_id INT UNSIGNED NOT NULL,
+ decision VARCHAR(30) NOT NULL,feedback TEXT NOT NULL,internal_notes TEXT NOT NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(version_id) REFERENCES blueprint_versions(id),FOREIGN KEY(author_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS job_cards (
+ service_id INT UNSIGNED PRIMARY KEY,notes TEXT NOT NULL,acknowledged_by INT UNSIGNED NULL,acknowledged_at DATETIME NULL,
+ completed_at DATETIME NULL,revision INT UNSIGNED NOT NULL DEFAULT 0,
+ FOREIGN KEY(service_id) REFERENCES services(id),FOREIGN KEY(acknowledged_by) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS job_checklist (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,service_id INT UNSIGNED NOT NULL,label VARCHAR(255) NOT NULL,done TINYINT NOT NULL DEFAULT 0,
+ updated_by INT UNSIGNED NULL,updated_at DATETIME NULL,FOREIGN KEY(service_id) REFERENCES services(id),FOREIGN KEY(updated_by) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS job_photos (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,service_id INT UNSIGNED NOT NULL,author_id INT UNSIGNED NOT NULL,
+ filename VARCHAR(80) NOT NULL,mime VARCHAR(40) NOT NULL,phase VARCHAR(20) NOT NULL,caption VARCHAR(255) NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(service_id) REFERENCES services(id),FOREIGN KEY(author_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS quotations (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,customer_id INT UNSIGNED NOT NULL,service_id INT UNSIGNED NOT NULL,blueprint_id INT UNSIGNED NULL,
+ current_version INT UNSIGNED NOT NULL DEFAULT 0,status VARCHAR(30) NOT NULL DEFAULT 'Draft',created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(customer_id) REFERENCES users(id),FOREIGN KEY(service_id) REFERENCES services(id),FOREIGN KEY(blueprint_id) REFERENCES blueprints(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS quotation_versions (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,quotation_id INT UNSIGNED NOT NULL,version INT UNSIGNED NOT NULL,author_id INT UNSIGNED NOT NULL,
+ valid_until DATE NOT NULL,terms TEXT NOT NULL,labor DECIMAL(12,2) NOT NULL,additional DECIMAL(12,2) NOT NULL,
+ discount DECIMAL(12,2) NOT NULL,tax_percent DECIMAL(5,2) NOT NULL,total DECIMAL(12,2) NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE KEY quote_version(quotation_id,version),
+ FOREIGN KEY(quotation_id) REFERENCES quotations(id),FOREIGN KEY(author_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ALTER TABLE quotations ADD COLUMN IF NOT EXISTS request_key VARCHAR(80) NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS quotation_request_key ON quotations(customer_id,request_key);
+CREATE TABLE IF NOT EXISTS quotation_items (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,version_id INT UNSIGNED NOT NULL,product_id INT UNSIGNED NOT NULL,
+ description VARCHAR(160) NOT NULL,quantity INT UNSIGNED NOT NULL,unit_price DECIMAL(12,2) NOT NULL,
+ FOREIGN KEY(version_id) REFERENCES quotation_versions(id),FOREIGN KEY(product_id) REFERENCES products(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS quotation_events (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,quotation_id INT UNSIGNED NOT NULL,version INT UNSIGNED NOT NULL,actor_id INT UNSIGNED NOT NULL,
+ status VARCHAR(30) NOT NULL,note VARCHAR(2000) NOT NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(quotation_id) REFERENCES quotations(id),FOREIGN KEY(actor_id) REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS inventory_forecast_settings (
+ product_id INT UNSIGNED PRIMARY KEY,lead_days INT UNSIGNED NOT NULL DEFAULT 14,FOREIGN KEY(product_id) REFERENCES products(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS inventory_snapshots (
+ snapshot_date DATE PRIMARY KEY,inventory_value DECIMAL(16,2) NOT NULL,total_units BIGINT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS support_messages (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,user_id INT UNSIGNED NOT NULL,role VARCHAR(20) NOT NULL,body TEXT NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY(user_id) REFERENCES users(id),INDEX(user_id,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+INSERT IGNORE INTO settings(setting_key,setting_value) VALUES
+ ('duration_Installation','120'),('duration_Repair','90'),('duration_Maintenance','60'),
+ ('quote_tax_percent','0'),('quote_max_discount_percent','20');

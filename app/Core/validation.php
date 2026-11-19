@@ -16,3 +16,17 @@ function integer_field(array $data, string $key, int $min = 0, int $max = 100000
     if (floor($n) !== $n) fail("$key must be a whole number.");
     return (int)$n;
 }
+
+function password_field(array $data,string $key='password',bool $new=false): string {
+    $password=$data[$key] ?? null;
+    if(!is_string($password) || $password==='' || strlen($password)>($new?72:800) || str_contains($password,"\0")) {
+        fail($new?'Use a password between 10 and 72 bytes (up to 72 plain-text characters).':'Enter a valid password.');
+    }
+    if($new && strlen($password)<10)fail('Use a password with at least 10 characters.');
+    return $password;
+}
+function verify_account_password(string $password,string $hash): bool {
+    // Prior releases trimmed passwords before hashing. Preserve those logins;
+    // the exact raw password is always checked first for newly created hashes.
+    return password_verify($password,$hash) || ($password!==trim($password) && password_verify(trim($password),$hash));
+}

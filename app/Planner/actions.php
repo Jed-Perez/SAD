@@ -20,8 +20,8 @@ function handle_planner(string $action,array $data,array $u): never {
     }
     $id=integer_field($data,'id',1);$b=accessible_blueprint($id,$u);
     if($action==='blueprint_review'){
-        require_user(['admin','staff']);if($b['status']!=='Analyzed')fail('Analyze this blueprint first.');
-        query('UPDATE blueprints SET reviewed_at=NOW(),review_notes=? WHERE id=?',[strval_field($data,'review_notes',3000),$id]);audit('Reviewed blueprint',(string)$id);json_out(['ok'=>true]);
+        require_user(['admin','staff']);if(!in_array($b['status'],['Analyzed','Edited'],true))fail('Analyze this blueprint first.');
+        require_once dirname(__DIR__).'/Advanced/plans.php';$version=(int)query('SELECT COALESCE(MAX(version),0) FROM blueprint_versions WHERE blueprint_id=?',[$id])->fetchColumn();handle_plans('plan_review',['id'=>$id,'version'=>$version,'decision'=>'Revision Required','feedback'=>strval_field($data,'review_notes',3000),'internal_notes'=>''],$u);
     }
     $requested=strval_field($data,'provider',20,false) ?: default_ai_provider();
     $providers=choose_plan_providers($requested);
@@ -32,7 +32,10 @@ function handle_planner(string $action,array $data,array $u): never {
     audit('AI analysis requested',"Blueprint $id; choice $requested");session_write_close();set_time_limit(in_array('ollama',$providers,true)?ollama_timeout_seconds()+30:180);
     try{
         $plan=analyze_image($b,$providers);$estimate=build_estimate($plan,settings(),query('SELECT * FROM products WHERE active=1')->fetchAll());
-        query("UPDATE blueprints SET status='Analyzed',analysis=?,estimate=?,reviewed_at=NULL,review_notes=NULL WHERE id=?",[json_encode($plan),json_encode($estimate),$id]);
+        require_once dirname(__DIR__).'/Advanced/plans.php';db()->beginTransaction();$locked=query('SELECT * FROM blueprints WHERE id=? FOR UPDATE',[$id])->fetch();
+        if($locked['analysis'] && !query('SELECT id FROM blueprint_versions WHERE blueprint_id=? LIMIT 1',[$id])->fetch())snapshot_plan($locked,(int)$locked['user_id'],json_decode($locked['analysis'],true),json_decode($locked['estimate'],true)??[]);
+        $version=snapshot_plan($locked,(int)$u['id'],$plan,$estimate);query("UPDATE blueprints SET status='Analyzed',analysis=?,estimate=?,reviewed_at=NULL,review_notes=NULL WHERE id=?",[json_encode($plan),json_encode($estimate),$id]);
+        notify_user((int)$locked['user_id'],'blueprint','Blueprint analysis ready','Review and edit the preliminary camera plan.','planner/'.$id,'plan-analysis:'.$id.':'.$version);db()->commit();
         json_out(['ok'=>true]);
     }catch(Throwable $e){query("UPDATE blueprints SET status=? WHERE id=?",[$b['analysis']?'Analyzed':'Failed',$id]);throw $e;}
 }

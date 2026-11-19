@@ -2,7 +2,10 @@
 declare(strict_types=1);
 $config = [
     'app_url' => '', // Canonical public base URL, e.g. https://example.com/SAD
+    'notification_email_enabled' => false,
     'mail_from' => '', // Sender address; also configure PHP mail transport.
+    'google_client_id' => '',
+    'google_client_secret' => '', // Server-side OAuth secret, never sent to the browser.
     'db_host' => getenv('DB_HOST') ?: '127.0.0.1',
     'db_port' => getenv('DB_PORT') ?: '3306',
     'db_name' => getenv('DB_NAME') ?: 'ncpcs_isms',
@@ -30,7 +33,7 @@ foreach (['DB_HOST'=>'db_host','DB_PORT'=>'db_port','DB_NAME'=>'db_name','DB_USE
     if (getenv($env)!==false) $config[$key]=getenv($env);
 }
 if (getenv('META_API_KEYS')!==false) $config['meta_api_keys']=explode(',',getenv('META_API_KEYS'));
-foreach (['APP_URL'=>'app_url','MAIL_FROM'=>'mail_from'] as $env=>$key) {
+foreach (['APP_URL'=>'app_url','MAIL_FROM'=>'mail_from','GOOGLE_CLIENT_ID'=>'google_client_id','GOOGLE_CLIENT_SECRET'=>'google_client_secret'] as $env=>$key) {
     if (getenv($env)!==false) $config[$key]=getenv($env);
 }
 foreach (['OLLAMA_API_KEY'=>'ollama_api_key','OLLAMA_URL'=>'ollama_url','OLLAMA_MODEL'=>'ollama_model','OLLAMA_TIMEOUT'=>'ollama_timeout','AI_DEFAULT_PROVIDER'=>'ai_default_provider'] as $env=>$key) {

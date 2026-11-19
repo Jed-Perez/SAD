@@ -1,4 +1,6 @@
 Options -Indexes
+# Block hidden project files and directories, including repository metadata.
+RedirectMatch 404 "(^|/)\."
 <FilesMatch "^(config.*\.php|install\.php|.*\.sql|.*\.md)$">
     Require all denied
 </FilesMatch>

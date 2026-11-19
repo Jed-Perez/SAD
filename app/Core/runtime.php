@@ -12,6 +12,7 @@ if (PHP_SAPI !== 'cli') {
     session_name('ncpcs_session');
     session_set_cookie_params(['httponly' => true, 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off', 'samesite' => 'Lax', 'path' => '/']);
     ini_set('session.use_strict_mode', '1');
+    ini_set('session.gc_maxlifetime','43200');
     session_start();
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: SAMEORIGIN');

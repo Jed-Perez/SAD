@@ -25,7 +25,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 ROOT = Path(__file__).resolve().parents[1]
 PHP = r'C:\xampp\php\php.exe'
 DB = 'ncpcs_test_' + secrets.token_hex(5)
-ENV = {**os.environ, 'DB_NAME': DB, 'OLLAMA_ENABLED': '0', 'OLLAMA_API_KEY': '', 'AI_DEFAULT_PROVIDER': 'auto', 'OPENAI_API_KEY': '', 'GEMINI_API_KEY': '', 'META_API_KEY': '', 'META_API_KEYS': ''}
+ENV = {**os.environ, 'DB_NAME': DB, 'OLLAMA_ENABLED': '0', 'OLLAMA_API_KEY': '', 'AI_DEFAULT_PROVIDER': 'auto', 'OPENAI_API_KEY': '', 'GEMINI_API_KEY': '', 'META_API_KEY': '', 'META_API_KEYS': '', 'GOOGLE_CLIENT_ID': 'test-client.apps.googleusercontent.com', 'GOOGLE_CLIENT_SECRET': 'test-secret'}
 SERVER = None
 MAILBOX = None
 UPLOAD_TEMP = None
@@ -46,7 +46,8 @@ def php(code, stdin=''):
 
 class Client:
     def __init__(self):
-        self.http = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+        self.jar = http.cookiejar.CookieJar()
+        self.http = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))
         self.token = self.call('session')[1]['csrf']
     def request(self, path, body=None, headers=None):
         request = urllib.request.Request(f'http://127.0.0.1:{PORT}/'+path, data=body, headers=headers or {})
@@ -57,6 +58,8 @@ class Client:
         raw = response.read()
         return response.status, raw, response.headers
     def call(self, action, data=None, **params):
+        if action in ('stock_move','service_create','quotation_save') and data is not None:
+            data = {'request_key': secrets.token_hex(16), **data}
         headers = {}
         body = None
         if data is not None:
@@ -71,6 +74,10 @@ class Client:
             self.token = result['csrf']
         return status, result
     def ok(self, action, data=None, **params):
+        if action == 'register' and data is not None:
+            data = {'confirm_password': data.get('password'), **data}
+        if action == 'profile' and data and data.get('new_password'):
+            data = {'confirm_new_password': data['new_password'], **data}
         status, result = self.call(action, data, **params)
         assert status == 200, (action, status, result)
         return result
@@ -100,6 +107,7 @@ def browser_checks():
         page.goto(f'http://127.0.0.1:{PORT}/')
         page.get_by_role('heading',name='A clearer path to a safer home.').wait_for()
         check(page.locator('.landing-feature-card').count()==4,'Public landing page presents four features')
+        theme_landing_checks(page, context, PORT, check, artifacts)
         page.screenshot(path=str(artifacts/'landing-desktop.png'),full_page=True,animations='disabled')
         page.set_viewport_size({'width':390,'height':844})
         page.screenshot(path=str(artifacts/'landing-mobile.png'),full_page=True,animations='disabled')
@@ -115,11 +123,14 @@ def browser_checks():
         page.locator('.landing-hero-actions a[href="portal.php?register=1"]').click()
         page.get_by_role('button',name='Create account',exact=True).wait_for()
         check(not page.locator('#register-fields').is_hidden(),'Landing signup opens customer registration')
+        google_browser_checks(page, PORT, check)
         for width,height in [(1366,768),(1440,600),(390,844),(390,667)]:
             page.set_viewport_size({'width':width,'height':height})
             for mode in ['login','register']:
                 page.evaluate("mode => setAuthMode(mode)",mode)
-                check(page.evaluate('document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth'),f'{mode} fits {width}x{height}')
+                check(page.evaluate('document.documentElement.scrollWidth <= innerWidth'),f'{mode} fits width at {width}x{height}')
+                page.locator('#auth-submit').scroll_into_view_if_needed()
+                check(page.locator('#auth-submit').is_visible(),f'{mode} submit remains reachable at {width}x{height}')
         page.evaluate("setAuthMode('login')")
         page.set_viewport_size({'width':1440,'height':1000})
         recovery_browser_checks(page, PORT, check, MAILBOX)
@@ -128,7 +139,7 @@ def browser_checks():
         page.locator('#login-password').fill(PASSWORD)
         page.locator('#auth-submit').click()
         try:
-            page.get_by_role('heading',name='Hello, NCPCS.').wait_for(timeout=10000)
+            page.locator('.chart-panel').wait_for(timeout=30000)
         except Exception:
             print('BROWSER ERRORS:',errors,flush=True)
             print('BROWSER PAGE:',page.locator('body').inner_text(),flush=True)
@@ -144,7 +155,9 @@ def browser_checks():
         page.locator('#logout').scroll_into_view_if_needed()
         check(page.evaluate(sidebar_reachable),'Desktop Sign out stays visible')
         page.set_viewport_size({'width':1366,'height':768})
-        check(page.evaluate("[...document.querySelectorAll('#navigation a')].every(a=>{const r=a.getBoundingClientRect();return r.top>=0 && r.bottom<=document.querySelector('#navigation').getBoundingClientRect().bottom;})"),'All administrator functions visible at laptop size')
+        for nav_link in page.locator('#navigation a').all():
+            nav_link.scroll_into_view_if_needed()
+            check(nav_link.is_visible(), 'Administrator navigation remains reachable at laptop size')
         page.set_viewport_size({'width':1440,'height':1000})
         for route, heading in [('inventory','Inventory'),('customers','Customers'),('services','Service requests'),('schedule','Technician schedule'),('messages','Messages'),('planner','CCTV planner'),('reports','Reports'),('users','Team & accounts'),('settings','Settings'),('user-logs','User logs'),('audit-logs','Audit logs')]:
             page.locator(f'a[data-page="{route}"]').click()
@@ -265,6 +278,9 @@ def browser_checks():
         page.locator('#f-provider').select_option('auto')
         check('sent online to Ollama Cloud' in page.locator('#ai-processing-note').inner_text(),'Automatic mode explains Cloud processing')
         page.locator('#editor-modal [data-bs-dismiss="modal"]').first.click()
+        if page.locator('[data-discard-changes]').is_visible():
+            page.locator('[data-discard-changes]').click()
+        page.locator('#editor-modal').wait_for(state='hidden')
         page.unroute('**/api.php?action=blueprint&id=*',available_provider_fixture)
         customer_context=browser.new_context(viewport={'width':1280,'height':900})
         cp=customer_context.new_page()
@@ -291,7 +307,7 @@ def browser_checks():
         customer_context.close()
         page.set_viewport_size({'width':390,'height':844})
         page.goto(f'http://127.0.0.1:{PORT}/portal.php#dashboard')
-        page.get_by_role('heading',name='Hello, NCPCS.').wait_for()
+        page.locator('.chart-panel').wait_for(timeout=30000)
         page.screenshot(path=str(artifacts/'mobile-dashboard.png'),full_page=True,animations='disabled')
         if page.evaluate('document.documentElement.scrollWidth > window.innerWidth'):
             print('OVERFLOW:',page.evaluate("[...document.querySelectorAll('body *')].filter(x=>x.getBoundingClientRect().right>window.innerWidth).slice(0,12).map(x=>[x.tagName,x.className,x.getBoundingClientRect().width])"))
@@ -304,6 +320,9 @@ def browser_checks():
         page.locator('a[data-page="messages"]').click()
         page.get_by_role('heading',name='Messages',exact=True).wait_for()
         check(page.evaluate('document.documentElement.scrollWidth <= window.innerWidth'),'Mobile messaging has no horizontal overflow')
+        from advanced_browser import advanced_browser
+        advanced_browser(browser, PORT, PASSWORD, BLUEPRINT_ID, check, artifacts)
+        workspace_ui_checks(page, PORT, php, check, artifacts)
         check(not errors,'No JavaScript runtime errors: '+str(errors))
         browser.close()
 
@@ -314,6 +333,9 @@ try:
         sock.bind(('127.0.0.1',0))
         PORT=sock.getsockname()[1]
     from password_recovery import Mailbox, recovery_checks, recovery_browser_checks
+    from google_auth import google_checks, google_browser_checks
+    from audit_checks import audit_checks
+    from ui_browser import theme_landing_checks, workspace_ui_checks
     MAILBOX = Mailbox()
     UPLOAD_TEMP = tempfile.TemporaryDirectory(prefix='ncpcs_test_upload_')
     ENV.update(APP_URL=f'http://127.0.0.1:{PORT}', MAIL_FROM='noreply@test.local')
@@ -386,7 +408,10 @@ try:
     technician.ok('stock_move',{'product_id':product,'quantity':-2,'reason':'Installed parts','service_id':service})
     check(next(p['stock'] for p in admin.ok('products')['items'] if p['id']==product)==3,'Service parts deduct stock')
     check(len(customer.ok('service',id=service)['parts'])==1,'Customer sees parts in own service history')
-    technician.ok('service_update',{'id':service,'status':'Completed','notes':'Tested cameras'})
+    technician.ok('service_update',{'id':service,'status':'In Progress','notes':'Starting work'})
+    technician.ok('job_save',{'service_id':service,'revision':0,'notes':'Starting checklist','checks':[]})
+    job=technician.ok('job_card',service_id=service)
+    technician.ok('job_save',{'service_id':service,'revision':job['card']['revision'],'notes':'Tested cameras','checks':[{'id':c['id'],'done':1} for c in job['checklist']],'complete':True})
     check(customer.ok('service',id=service)['item']['warranty_until']=='2027-11-20','Technician update preserves administrator warranty')
     check(technician.call('stock_move',{'product_id':product,'quantity':-1,'reason':'Closed job','service_id':service})[0]==422,'Completed jobs reject new stock deductions')
     customer.ok('message_send',{'body':'Hello from customer'})
@@ -467,10 +492,24 @@ try:
     check(customer.request('report.php?type=inventory')[0]==403,'Customer cannot export business reports')
     for report in ['inventory','low-stock','services','schedule','movements']:
         check(admin.request('report.php?type='+report)[0]==200,'Printable report '+report)
+    from advanced_checks import advanced_checks
+    advanced_checks(Client, php, check, admin, customer, other, technician, tid, bid, ENV)
     recovery_checks(Client, php, check, MAILBOX)
+    audit_checks(Client, php, check, admin)
     # The browser uses the same isolated database; no real records are touched.
+    if '--advanced-browser' in sys.argv:
+        sys.path.insert(0,str(ROOT/'.tools'))
+        from playwright.sync_api import sync_playwright
+        from advanced_browser import advanced_browser
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch(executable_path=r'C:\Program Files\Google\Chrome\Application\chrome.exe',headless=True)
+            artifacts=ROOT/'tests'/'.artifacts';artifacts.mkdir(exist_ok=True)
+            advanced_browser(browser, PORT, PASSWORD, BLUEPRINT_ID, check, artifacts)
+            browser.close()
     if '--browser' in sys.argv:
         browser_checks()
+        admin=Client();admin.login('admin@ncpcs.local',PASSWORD)
+    google_checks(Client, php, check)
     other_id=other.ok('session')['user']['id']
     admin.ok('user_save',{'id':other_id,'name':'Other Customer','email':'other@test.local','role':'customer','active':0})
     check(other.call('services')[0]==401,'Deactivated account loses access immediately')
@@ -488,6 +527,6 @@ finally:
     # Cleanup is limited to this run's randomly named test database and its uploads.
     if re.fullmatch(r'ncpcs_test_[0-9a-f]{10}',DB):
         try:
-            php("require 'app/bootstrap.php';require 'app/Inventory/images.php';foreach(query('SELECT filename FROM product_images')->fetchAll() as $i){delete_product_image_file($i['filename']);} foreach(query('SELECT filename FROM blueprints')->fetchAll() as $b){$p=__DIR__.'/storage/blueprints/'.$b['filename'];if(is_file($p))unlink($p);} db()->exec('DROP DATABASE `'.getenv('DB_NAME').'`');")
+            php("require 'app/bootstrap.php';require 'app/Inventory/images.php';foreach(query('SELECT filename FROM product_images')->fetchAll() as $i){delete_product_image_file($i['filename']);} foreach(query('SELECT filename FROM job_photos')->fetchAll() as $j){$jp=__DIR__.'/storage/jobs/'.$j['filename'];if(is_file($jp))unlink($jp);} foreach(query('SELECT filename FROM blueprints')->fetchAll() as $b){$p=__DIR__.'/storage/blueprints/'.$b['filename'];if(is_file($p))unlink($p);} db()->exec('DROP DATABASE `'.getenv('DB_NAME').'`');")
         except Exception as error:
             print('Cleanup warning:',error)

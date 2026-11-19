@@ -13,7 +13,7 @@ function save_product(array $data): int {
             $oldFilename=query('SELECT filename FROM product_images WHERE product_id=?',[$id])->fetchColumn() ?: null;
         }
         $newImage=receive_product_image();
-        if ($id) query('UPDATE products SET sku=?,name=?,category=?,price=?,reorder_level=? WHERE id=?',[...$values,$id]);
+        if ($id) query('UPDATE products SET sku=?,name=?,category=?,price=?,reorder_level=?,updated_at=NOW() WHERE id=?',[...$values,$id]);
         else {
             query('INSERT INTO products(sku,name,category,price,reorder_level) VALUES(?,?,?,?,?)',$values);
             $id=(int)db()->lastInsertId();

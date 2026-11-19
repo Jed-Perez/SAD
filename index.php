@@ -5,7 +5,7 @@ header('Cache-Control: no-cache');
 ?>
 <!doctype html>
 <html lang="en">
-<head>
+<head><script src="<?=asset_url('assets/js/UI/theme.js')?>"></script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#102f3c">
@@ -14,7 +14,7 @@ header('Cache-Control: no-cache');
     <link rel="stylesheet" href="<?=asset_url('assets/vendor/bootstrap.min.css')?>">
     <link rel="stylesheet" href="<?=asset_url('assets/css/landing.css')?>">
     <link rel="stylesheet" href="<?=asset_url('assets/css/showcase.css')?>">
-</head>
+<link rel="stylesheet" href="<?=asset_url('assets/css/ui.css')?>"></head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
 <header class="landing-header">
@@ -34,6 +34,7 @@ header('Cache-Control: no-cache');
             <a class="landing-signin" href="portal.php">Sign in</a>
             <a class="landing-button landing-button-primary" href="portal.php?register=1">Get started <span aria-hidden="true">→</span></a>
         </div>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false"><svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z"/></svg><svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg><span data-theme-label>Dark mode</span></button>
         <button class="landing-menu-button" id="landing-menu-button" type="button" aria-controls="landing-links" aria-expanded="false" aria-label="Open menu">
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>

@@ -8,13 +8,16 @@ function handle_settings_action(string $action,array $data,array $u,array $confi
         require_user(['admin']);$values=[];
         foreach(['labor_per_camera','setup_labor','cable_meters_per_camera','contingency_percent'] as $key)$values[$key]=(string)number_field($data,$key,0,$key==='contingency_percent'?50:100000);
         $values['price_note']=strval_field($data,'price_note',1000);
-        db()->beginTransaction();foreach($values as $key=>$value)query('UPDATE settings SET setting_value=? WHERE setting_key=?',[$value,$key]);audit('Updated quotation rates');db()->commit();json_out(['ok'=>true]);
+        foreach(['duration_Installation','duration_Repair','duration_Maintenance'] as $key)if(array_key_exists($key,$data))$values[$key]=(string)integer_field($data,$key,30,480);
+        foreach(['quote_tax_percent','quote_max_discount_percent'] as $key)if(array_key_exists($key,$data))$values[$key]=(string)number_field($data,$key,0,100);
+        foreach(['Installation','Repair','Maintenance'] as $type){$key='checklist_'.$type;if(!array_key_exists($key,$data))continue;$text=strval_field($data,$key,10000);$items=array_values(array_filter(array_map('trim',preg_split('/\R/u',$text))));if(!$items||count($items)>60)fail('Use between one and sixty checklist tasks.');foreach($items as $label)if(mb_strlen($label)>255)fail('Checklist tasks must be under 256 characters.');$values[$key]=json_encode($items);}
+        db()->beginTransaction();foreach($values as $key=>$value)query('INSERT INTO settings(setting_key,setting_value) VALUES(?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)',[$key,$value]);audit('Updated quotation rates');db()->commit();json_out(['ok'=>true]);
     case 'audit':
     case 'user_logs':
         require_user(['admin']);
         $page=max(1,min(100000,(int)($data['page'] ?? 1)));
         $search=trim(strval_field($data,'search',120,false));
-        $where=$action==='user_logs' ? " WHERE a.action IN ('Signed in','Signed out','Registered account','Failed sign in','Updated profile','Changed password','Password reset')" : ' WHERE 1=1';
+        $where=$action==='user_logs' ? " WHERE a.action IN ('Signed in','Signed out','Registered account','Failed sign in','Updated profile','Changed password','Password reset','Revoked session','Revoked other sessions')" : ' WHERE 1=1';
         $params=[];
         if($search!==''){
             $where.=' AND (u.name LIKE ? OR u.email LIKE ? OR a.action LIKE ? OR a.details LIKE ?)';

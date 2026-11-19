@@ -43,8 +43,8 @@ function handle_password_recovery(string $action, array $data): never {
 
     $reset=strval_field($data,'reset_token',64);
     if (!preg_match('/^[a-f0-9]{64}$/D',$reset)) fail('This reset link is invalid or expired. Request a new link.');
-    $password=strval_field($data,'password',200);
-    $confirm=strval_field($data,'confirm_password',200);
+    $password=password_field($data,'password',true);
+    $confirm=password_field($data,'confirm_password');
     if (strlen($password)<10) fail('Use a password with at least 10 characters.');
     if ($password!==$confirm) fail('The passwords do not match.');
     $newHash=password_hash($password,PASSWORD_DEFAULT);
@@ -57,13 +57,13 @@ function handle_password_recovery(string $action, array $data): never {
         $updated=query('UPDATE users SET password_hash=? WHERE id=? AND active=1 AND password_hash=?',[$newHash,$r['user_id'],$r['password_hash']]);
         if ($updated->rowCount()!==1) fail('This reset link is invalid or expired. Request a new link.');
         query('DELETE FROM password_resets WHERE user_id=?',[$r['user_id']]);
+        query('DELETE FROM auth_devices WHERE user_id=?',[$r['user_id']]);
         query('INSERT INTO audit_logs(user_id,action,details) VALUES(?,?,?)',[$r['user_id'],'Password reset','Reset using email verification']);
         $db->commit();
     } catch (Throwable $e) {
         if ($db->inTransaction()) $db->rollBack();
         throw $e;
     }
-    $_SESSION=[];
-    session_regenerate_id(true);
+    end_auth_session();
     json_out(['ok'=>true,'csrf'=>csrf(),'message'=>'Your password has been reset. Sign in with your new password.']);
 }

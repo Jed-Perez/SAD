@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS auth_devices (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ user_id INT UNSIGNED NOT NULL,
+ selector_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL UNIQUE,
+ validator_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
+ previous_validator_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL,
+ rotated_at DATETIME NULL,
+ password_version CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ remembered TINYINT(1) NOT NULL DEFAULT 0,
+ device_label VARCHAR(160) NOT NULL DEFAULT 'Browser',
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ expires_at DATETIME NOT NULL,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ INDEX(user_id,expires_at), INDEX(expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

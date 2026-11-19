@@ -9,3 +9,4 @@ require_once __DIR__.'/Settings/helpers.php';
 require_once __DIR__.'/Planner/config.php';
 require_once __DIR__.'/Services/access.php';
 require_once __DIR__.'/Planner/access.php';
+require_once __DIR__.'/Advanced/common.php';

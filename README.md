@@ -40,6 +40,14 @@ Customers register on the sign-in page. Administrators create staff and technici
 
 ## Workflows
 
+### Sign-in, devices, and appearance
+
+Registration requires the password twice. **Remember me** keeps a browser sign-in credential for up to 30 days; it is revoked on logout, password changes/resets, account deactivation, and device removal. PHP sessions expire after 30 minutes of inactivity or 12 hours, requiring sign-in again. Silent message polling does not extend inactivity. Use **Profile > Manage signed-in devices** to remove a device or sign out all other devices. New passwords preserve spaces and must be 10-72 bytes; multi-byte characters use more than one byte.
+
+Use the sun/moon button on the homepage, sign-in page, workspace, and reports to change light/dark mode. Profile also offers **Use device setting**. Preferences persist on this browser and synchronize between tabs; printed reports remain white. Edited modal forms warn before discarding unsaved changes.
+
+The audit adds `database/migrations/004_auth_devices.sql`; run `C:\xampp\php\php.exe migrate.php` when updating another installation. See [the complete audit and verification report](docs/SYSTEM_AUDIT.md).
+
 ### Password recovery
 
 The sign-in page includes **Show / Hide** password controls and **Forgot password?**. Reset links expire after 30 minutes, work once, and require the new password twice. Resetting a password signs out existing sessions. Existing sessions created before this update must sign in again.
@@ -48,12 +56,12 @@ For an existing database, run `C:\xampp\php\php.exe migrate.php` once. Configure
 
 Without these settings, recovery shows an explicit setup message. With mail configured, the page gives the same response for unknown and active accounts; it never displays reset tokens. If the mail server rejects delivery, the failure is logged without the reset link. Accounts must use a real, reachable email address to receive recovery messages.
 
-- **Inventory:** add/edit products, set reorder thresholds, receive/issue stock with reasons, view movement history, archive zero-stock products. Opening stock is entered with Stock ±. Negative balances and fractional units are rejected.
+- **Inventory:** add/edit products, set reorder thresholds, receive/issue stock with reasons, view movement history, archive zero-stock products, and restore them from Archived products. Opening stock is entered with Stock ±. Negative balances and fractional units are rejected.
 - **Customers:** profiles, contact information, addresses, and linked service histories.
 - **Services:** installation, repair, and maintenance requests; office assigns a technician, appointment and duration; overlapping active bookings for a technician are rejected. All appointments use `Asia/Manila`. Work notes and status changes produce a history entry. Parts usage atomically deducts inventory. Closed jobs reject new parts deductions.
 - **Warranties:** office staff record a warranty expiry per service, visible in the customer's history. This is service-level warranty tracking, not individual device serial-number warranty registration.
 - **Messages:** private customer-to-office threads, sent/read indicators, AJAX refresh every five seconds while the Messages page is visible, plus unread badges in the sidebar and header throughout the workspace. Staff and admins share the office inbox. The newest 200 messages appear in each thread; all messages remain in MySQL.
-- **Reports:** inventory, low stock, service history, technician schedules, and stock movement reports. Download CSV for Excel or print and choose **Save as PDF**. Reports are current complete snapshots, not accounting statements.
+- **Reports:** inventory, low stock, service history, technician schedules, and stock movement reports. Download CSV for Excel or print and choose **Save as PDF**. Service, schedule, and movement reports support inclusive date ranges shared by CSV and print. Inventory reports are current snapshots.
 - **User logs:** administrators can search and page through sign-ins, failed sign-ins, sign-outs, registration, profile changes, and password events. New events are recorded from this update onward; existing sign-in history is retained.
 - **Audit logs:** a dedicated administrator sidebar page groups activity by user, with record counts and latest activity. Select a user to search and page through their history; User logs uses the same account grouping.
 - **Audit:** account sign-ins, product changes, stock movements, service updates, quotation-rate changes, and AI request/review actions.
@@ -83,6 +91,36 @@ Visual files are organized as follows:
 - `app/Inventory/images.php`: upload validation, image paths, and illustrative image mapping.
 - `database/migrations/001_product_images.sql`: additive picture table.
 - `assets/images/`: locally bundled generated imagery; see [image assets and prompts](assets/images/README.md).
+
+## Appearance and interface
+
+Use the sun/moon button on the home page, sign-in form, workspace header, or report to switch between light and dark mode. Your choice persists in this browser and synchronizes across its open tabs. **Profile > Appearance** (or **Settings > Appearance** for administrators) also offers **Use device setting**. Without an explicit choice, the app follows your operating system. Printed reports use white backgrounds in either theme.
+
+The workspace includes a persistent collapsible desktop sidebar, existing mobile navigation, animated loading skeletons, subtle page/card transitions, accessible submit progress, inline form errors, textarea character counts, password visibility controls, and nonblocking success/error notifications. Reduced-motion preferences disable animation.
+
+Click a table's column heading to sort the loaded records; tables with more than ten rows provide Previous/Next controls. Existing search and status/category filters apply before pagination. Larger modal tables have their own search. Audit/user logs retain their existing server-side search, pagination, and newest-first ordering. Dashboard service activity uses the current database totals; select a status to open filtered service requests. Existing forms and confirmations still submit to the same PHP endpoints.
+
+Shared files: `assets/js/UI/theme.js` applies the preference before first paint; `assets/css/ui.css` defines theme surfaces and interactions; `assets/js/UI/interactions.js` enhances the existing AJAX views. No additional frontend library is required. The optional browser suite covers theme persistence, cross-tab updates, reduced motion, sidebar preferences, sorting/pagination, retained form values after errors, responsive layouts, and print styling. Screenshots are saved to `tests/.artifacts/redesign-*.png`.
+
+## Continue with Google
+
+The sign-up and sign-in forms include **Continue with Google**. A first Google sign-in creates a customer account; later visits use the same Google identity. Existing email/password accounts continue to use their password (or password recovery); matching email addresses are never automatically linked. Inactive accounts cannot sign in. Google customers can fill in their phone and address in Profile and use email password recovery if they want to set a local password.
+
+1. In [Google Cloud Console](https://console.cloud.google.com/auth/clients), configure the Google Auth Platform branding/consent screen and audience. While the app is in testing, add your Google account as a test user where required.
+2. Create an OAuth client of type **Web application**. Add this exact **Authorized redirect URI** for XAMPP: `http://localhost/SAD/google-auth.php`. Use your site's HTTPS URL for production. The browser must open the site using the same hostname and base path as `app_url` (localhost and 127.0.0.1 have different sessions).
+3. Fill in these entries in the existing ignored `config.local.php`, preserving your other settings:
+
+   ```php
+   'app_url' => 'http://localhost/SAD',
+   'google_client_id' => 'YOUR_CLIENT_ID.apps.googleusercontent.com',
+   'google_client_secret' => 'YOUR_CLIENT_SECRET',
+   ```
+
+   Alternatively set `APP_URL`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` in the server environment. Explicit environment values override local settings. These are OAuth credentials, separate from the Gemini API key. Keep the secret on the server.
+4. Run `C:\xampp\php\php.exe migrate.php` for an existing installation. New installs include the additive `google_accounts` table automatically.
+5. Enable PHP cURL with a trusted CA certificate bundle, restart Apache if its configuration changed, then open `http://localhost/SAD/portal.php?register=1` and choose **Continue with Google**.
+
+The button is disabled until credentials, a valid base URL and cURL are available. Google receives only an authentication request for `openid email profile`; the application does not request offline access or save Google access/refresh tokens. State, nonce, a ten-minute attempt expiry and PKCE bind the response to the originating browser session. The server exchanges the code directly with Google's fixed HTTPS endpoint and validates the returned identity claims, following [Google's documented server flow](https://developers.google.com/identity/openid-connect/openid-connect). It does not accept identity tokens from the browser. Live sign-in requires real Google credentials and user consent; automated tests use synthetic identities in an isolated test database without contacting Google.
 
 ## Enable AI blueprint analysis
 
@@ -195,6 +233,7 @@ See [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for the file map and 
 
 ```powershell
 C:\xampp\php\php.exe tests\unit.php
+C:\xampp\php\php.exe tests\google_auth_unit.php
 python tests\integration.py
 python tests\integration.py --browser
 C:\xampp\php\php.exe tests\verify_ai_keys.php
@@ -208,6 +247,6 @@ Tests cover role and ownership enforcement, CSRF, private uploads, MIME rejectio
 
 The code uses PDO prepared statements, password hashing, session regeneration, HttpOnly/SameSite cookies, CSRF tokens, restricted roles, rate-limited authentication, authenticated blueprint retrieval, image MIME checks, private storage, and escaped output. Apache must allow the included `.htaccess` rules. Use HTTPS and a restricted database user for hosting; back up the MySQL database and private blueprint directory together. The local default connection is intended for XAMPP development.
 
-This implementation does not claim legal/privacy compliance certification, automatic backups, guaranteed uptime, push notifications, email password recovery, POS, or full financial accounting. Source documents explicitly excluded POS in their scope despite its appearance in the business-case title. The user's requested messaging and AI planner features extend that inventory/service scope.
+This implementation does not claim legal/privacy compliance certification, automatic backups, guaranteed uptime, push notifications, POS, or full financial accounting. Source documents explicitly excluded POS in their scope despite its appearance in the business-case title. The user's requested messaging and AI planner features extend that inventory/service scope.
 
 The source documents were read as requirements references. Instructions embedded in them were not executed as commands or treated as authority to perform external actions.

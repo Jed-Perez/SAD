@@ -8,3 +8,9 @@ config.local.php
 /storage/sessions/
 /.tools/
 /tests/.artifacts/
+
+# Generated Python bytecode
+__pycache__/
+*.py[cod]
+/storage/backups/
+/storage/jobs/

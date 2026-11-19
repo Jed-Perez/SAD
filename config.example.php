@@ -3,6 +3,9 @@
 return [
     'app_url' => 'http://localhost/SAD', // Use your public HTTPS URL in production.
     'mail_from' => '', // Valid sender address; configure PHP mail() in php.ini.
+    'notification_email_enabled' => false, // Enable only after testing mail delivery; run app/Advanced/reminders.php on a schedule.
+    'google_client_id' => '', // Google OAuth client of type Web application.
+    'google_client_secret' => '', // Redirect URI: app_url + /google-auth.php.
     'db_host' => '127.0.0.1',
     'db_port' => '3306',
     'db_name' => 'ncpcs_isms',
