@@ -33,6 +33,7 @@ All eight workflows now have integrated database, API and browser implementation
 - `php tests/unit.php` passed the existing planner/provider unit checks.
 - Syntax validation passed for 47 application/entry PHP files and 18 JavaScript files.
 - `python tests/integration.py --browser` passed **446 checks**, including the existing application regression suite, all advanced API workflows, Chromium desktop/mobile UI, blueprint editing and persistence, quotation revisions, PDF output, protected photo upload, booking, support and notification controls.
+- A subsequent focused run, `python tests/integration.py --advanced-browser`, passed **303 checks**, including a corrected notification link opening the intended customer conversation.
 - Independent concurrent PHP processes verified that duplicate stock submissions deduct only once and competing customer bookings cannot both reserve the same slot.
 - An intentional database-trigger failure verified rollback of both service creation and its timeline when notification persistence fails.
 - Data isolation and CSRF checks cover the new actions. Mobile checks include 360px, 390px and 768px viewports. Screenshots and the rendered quotation PDF are under `tests/.artifacts/` and remain ignored.
