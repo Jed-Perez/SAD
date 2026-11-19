@@ -3,7 +3,13 @@ declare(strict_types=1);
 $config = [
     'app_url' => 'https://ncpcs.shop', // Canonical public base URL, e.g. https://example.com/SAD
     'notification_email_enabled' => false,
-    'mail_from' => '', // Sender address; also configure PHP mail transport.
+    'mail_from' => '', // Sender address; for Gmail SMTP, use the same Gmail address as smtp_username.
+    'mail_transport' => 'mail', // Set to smtp to use Gmail SMTP for password-reset delivery.
+    'smtp_host' => 'smtp.gmail.com',
+    'smtp_port' => 465,
+    'smtp_encryption' => 'ssl', // ssl (implicit TLS) or tls (STARTTLS).
+    'smtp_username' => '', // Your Gmail address.
+    'smtp_password' => '', // Google App Password, not your normal Google password.
     'google_client_id' => '',
     'google_client_secret' => '', // Server-side OAuth secret, never sent to the browser.
     'db_host' => getenv('DB_HOST') ?: 'localhost',
@@ -33,6 +39,9 @@ foreach (['DB_HOST'=>'db_host','DB_PORT'=>'db_port','DB_NAME'=>'db_name','DB_USE
     if (getenv($env)!==false) $config[$key]=getenv($env);
 }
 if (getenv('META_API_KEYS')!==false) $config['meta_api_keys']=explode(',',getenv('META_API_KEYS'));
+foreach (['MAIL_TRANSPORT'=>'mail_transport','SMTP_HOST'=>'smtp_host','SMTP_PORT'=>'smtp_port','SMTP_ENCRYPTION'=>'smtp_encryption','SMTP_USERNAME'=>'smtp_username','SMTP_PASSWORD'=>'smtp_password'] as $env=>$key) {
+    if (getenv($env)!==false) $config[$key]=getenv($env);
+}
 foreach (['APP_URL'=>'app_url','MAIL_FROM'=>'mail_from','GOOGLE_CLIENT_ID'=>'google_client_id','GOOGLE_CLIENT_SECRET'=>'google_client_secret'] as $env=>$key) {
     if (getenv($env)!==false) $config[$key]=getenv($env);
 }
