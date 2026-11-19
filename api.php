@@ -40,8 +40,10 @@ try {
     json_out(['error'=>$e->getMessage(),'csrf'=>csrf()],$e->getCode() ?: 422);
 } catch (PDOException $e) {
     try{if(db()->inTransaction())db()->rollBack();}catch(Throwable $ignored){}
-    error_log('Database request failed; SQLSTATE '.$e->getCode());
-    json_out(['error'=>$e->getCode()==='23000'?'That email or SKU already exists, or the record is still in use.':'Database unavailable. Check MySQL and run the installer.'], $e->getCode()==='23000'?409:503);
+    require_once __DIR__.'/app/Database/health.php';
+    $failure=database_api_failure($e);
+    error_log('Database request failed; '.$failure['error']);
+    json_out($e->getCode()==='23000'?['error'=>'That email or SKU already exists, or the record is still in use.']:$failure, $e->getCode()==='23000'?409:503);
 } catch (Throwable $e) {
     try{if(db()->inTransaction())db()->rollBack();}catch(Throwable $ignored){}
     error_log('API request failed: '.get_class($e));json_out(['error'=>'The request could not be completed. Please try again.'],500);

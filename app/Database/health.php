@@ -1,5 +1,20 @@
 <?php
 declare(strict_types=1);
+function database_api_failure(PDOException $error): array {
+    $driverCode=(int)($error->errorInfo[1]??0);
+    $reference=match($driverCode){
+        1044,1045=>'TT-DB-01',
+        1049=>'TT-DB-02',
+        1146=>'TT-DB-03',
+        2002,2003,2005=>'TT-DB-06',
+        1040,1203,1226=>'TT-DB-07',
+        1054=>'TT-DB-08',
+        default=>'TT-DB-99'
+    };
+    if(!in_array('mysql',PDO::getAvailableDrivers(),true))$reference='TT-DB-05';
+    // Only numeric driver codes are exposed, never SQL or connection details.
+    return ['error'=>'This request could not load its database data. Support reference: '.$reference.' (DB '.$driverCode.').','support_reference'=>$reference];
+}
 function database_failure_reason(Throwable $error): string {
     if(!in_array('mysql',PDO::getAvailableDrivers(),true))return 'mysql_driver_missing';
     $code=$error instanceof PDOException?(int)($error->errorInfo[1]??0):0;
