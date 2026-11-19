@@ -7,12 +7,22 @@ $googleError=$_SESSION['google_auth_error'] ?? '';
 unset($_SESSION['google_auth_error']);
 require_once __DIR__.'/app/Database/health.php';
 $databaseHealth=portal_database_health();$installed=$databaseHealth['ready'];
+$databaseReference=match($databaseHealth['reason']){
+    'credentials_or_permissions'=>'TT-DB-01',
+    'database_not_found'=>'TT-DB-02',
+    'users_table_missing'=>'TT-DB-03',
+    'no_user_accounts'=>'TT-DB-04',
+    'mysql_driver_missing'=>'TT-DB-05',
+    'database_host_unreachable'=>'TT-DB-06',
+    'database_connection_limit'=>'TT-DB-07',
+    default=>'TT-DB-99'
+};
 if(!$installed){http_response_code(503);header('Retry-After: 60');error_log('TechTrack portal database check: '.$databaseHealth['reason']);}
 ?><!doctype html>
 <html lang="en"><head><script src="<?=asset_url('assets/js/UI/theme.js')?>"></script><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="csrf-token" content="<?=htmlspecialchars(csrf(),ENT_QUOTES,'UTF-8')?>"><title>TechTrack Portal · NCPCS</title><link rel="stylesheet" href="<?=asset_url('assets/vendor/bootstrap.min.css')?>"><link rel="stylesheet" href="<?=asset_url('assets/app.css')?>"><link rel="stylesheet" href="<?=asset_url('assets/css/theme.css')?>"><link rel="stylesheet" href="<?=asset_url('assets/css/showcase.css')?>"><link rel="stylesheet" href="<?=asset_url('assets/css/inventory.css')?>"><link rel="stylesheet" href="<?=asset_url('assets/css/sidebar.css')?>"><link rel="stylesheet" href="<?=asset_url('assets/css/auth.css')?>"><link rel="stylesheet" href="<?=asset_url('assets/css/ui.css')?>"><link rel="stylesheet" href="<?=asset_url('assets/css/advanced.css')?>"></head>
 <body>
 <?php if(!$installed): ?>
-<main class="setup-card"><div class="brand-mark">T</div><h1>TechTrack is temporarily unavailable</h1><p>We cannot load the account service right now. Please try again shortly. If this continues, contact the NCPCS office.</p><a class="btn btn-primary" href="portal.php">Try again</a><a class="btn btn-light" href="index.php">Back to home</a></main>
+<main class="setup-card"><div class="brand-mark">T</div><h1>TechTrack is temporarily unavailable</h1><p>We cannot load the account service right now. Please try again shortly. If this continues, contact the NCPCS office.</p><p>Support reference: <strong><?=htmlspecialchars($databaseReference,ENT_QUOTES,'UTF-8')?></strong></p><a class="btn btn-primary" href="portal.php">Try again</a><a class="btn btn-light" href="index.php">Back to home</a></main>
 <?php else: ?>
 <div id="auth" class="auth-layout" hidden>
  <aside class="auth-story"><a class="brand" href="index.php"><span class="brand-mark">T</span><span>TechTrack<small>NCPCS MANAGEMENT SYSTEM</small></span></a><div><span class="eyebrow light">CONNECTED SERVICE. CLEARER SECURITY.</span><h1>A better view.<br>A smarter way<br>to take care.</h1><p>From the first service request to the final camera placement, keep everything in one place.</p><div class="plan-art" aria-hidden="true"><svg viewBox="0 0 440 230"><defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M 20 0 L 0 0 0 20" fill="none" stroke="#ffffff" stroke-opacity=".08"/></pattern></defs><rect width="440" height="230" fill="url(#grid)"/><path d="M60 35H370V195H60ZM60 110H175V35M175 110H270V195M270 110V35M175 140V195" fill="none" stroke="#a6c8bf" stroke-width="4"/><path d="M65 40L145 70L65 120Z M365 190L285 155L365 110Z" fill="#84e4b5" fill-opacity=".18"/><circle cx="65" cy="40" r="8" fill="#9aefbf"/><circle cx="365" cy="190" r="8" fill="#9aefbf"/><text x="207" y="79" fill="#c2d6ce" font-size="10">LIVING AREA</text><text x="87" y="160" fill="#c2d6ce" font-size="10">ENTRY</text><text x="296" y="79" fill="#c2d6ce" font-size="10">GARAGE</text></svg><span><i class="live-dot"></i> Thoughtful coverage starts with a plan</span></div></div><small>Nasugbu Computer Parts and CCTV Services · Batangas</small></aside>
