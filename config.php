@@ -1,16 +1,16 @@
 <?php
 declare(strict_types=1);
 $config = [
-    'app_url' => '', // Canonical public base URL, e.g. https://example.com/SAD
+    'app_url' => 'https://ncpcs.shop', // Canonical public base URL, e.g. https://example.com/SAD
     'notification_email_enabled' => false,
     'mail_from' => '', // Sender address; also configure PHP mail transport.
     'google_client_id' => '',
     'google_client_secret' => '', // Server-side OAuth secret, never sent to the browser.
-    'db_host' => getenv('DB_HOST') ?: '127.0.0.1',
+    'db_host' => getenv('DB_HOST') ?: 'localhost',
     'db_port' => getenv('DB_PORT') ?: '3306',
-    'db_name' => getenv('DB_NAME') ?: 'ncpcs_isms',
-    'db_user' => getenv('DB_USER') ?: 'root',
-    'db_password' => getenv('DB_PASSWORD') ?: '',
+    'db_name' => getenv('DB_NAME') ?: 'u920307677_sad_db',
+    'db_user' => getenv('DB_USER') ?: 'u920307677_sad_user',
+    'db_password' => 'YOUR_DATABASE_PASSWORD',
     'openai_api_key' => getenv('OPENAI_API_KEY') ?: '',
     'openai_model' => getenv('OPENAI_MODEL') ?: 'gpt-4o-mini',
     'gemini_api_key' => getenv('GEMINI_API_KEY') ?: '',
