@@ -50,6 +50,10 @@ The audit adds `database/migrations/004_auth_devices.sql`; run `C:\xampp\php\php
 
 ### Password recovery
 
+For Gmail on Hostinger, follow [GMAIL_SETUP.md](GMAIL_SETUP.md). Password-reset email supports authenticated SMTP with TLS using the bundled PHPMailer library. Set `mail_transport` to `smtp` and configure the `smtp_*` entries in your private `config.local.php`. `MAIL_TRANSPORT`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_ENCRYPTION`, `SMTP_USERNAME`, and `SMTP_PASSWORD` environment variables override these entries. PHP mail() remains the default for existing installations.
+
+For Gmail on Hostinger, follow [GMAIL_SETUP.md](GMAIL_SETUP.md). Password-reset email supports authenticated SMTP with TLS using the bundled PHPMailer library. Set `mail_transport` to `smtp` and configure the `smtp_*` entries in your private `config.local.php`. `MAIL_TRANSPORT`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_ENCRYPTION`, `SMTP_USERNAME`, and `SMTP_PASSWORD` environment variables override these entries. PHP mail() remains the default for existing installations.
+
 The sign-in page includes **Show / Hide** password controls and **Forgot password?**. Reset links expire after 30 minutes, work once, and require the new password twice. Resetting a password signs out existing sessions. Existing sessions created before this update must sign in again.
 
 For an existing database, run `C:\xampp\php\php.exe migrate.php` once. Configure `app_url` (the public base URL, such as `https://example.com/SAD`) and `mail_from` (your sender email) in `config.local.php`, or use `APP_URL` and `MAIL_FROM`. Configure PHP's `mail()` transport in the PHP configuration used by your web server; XAMPP needs a working SMTP relay/sendmail setup. Restart Apache after changing `php.ini`. Never use a request's Host header as the reset URL.

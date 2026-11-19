@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once dirname(__DIR__).'/Mail/delivery.php';
 
 function handle_password_recovery(string $action, array $data): never {
     global $config;
@@ -17,7 +18,8 @@ function handle_password_recovery(string $action, array $data): never {
         $from=(string)$config['mail_from'];
         if (!filter_var($base,FILTER_VALIDATE_URL) || !in_array(parse_url($base,PHP_URL_SCHEME),['https','http'],true)
             || parse_url($base,PHP_URL_QUERY) || parse_url($base,PHP_URL_FRAGMENT)
-            || preg_match('/[\r\n]/',$from) || !filter_var($from,FILTER_VALIDATE_EMAIL)) {
+            || preg_match('/[\r\n]/',$from) || !filter_var($from,FILTER_VALIDATE_EMAIL)
+            || !delivery_configured(delivery_settings())) {
             fail('Password recovery email is not set up yet. Please contact the NCPCS office for help.',503);
         }
         $u=query('SELECT id,email,password_hash FROM users WHERE email=? AND active=1',[$email])->fetch();
@@ -31,7 +33,7 @@ function handle_password_recovery(string $action, array $data): never {
                 // A fragment keeps the secret out of HTTP access logs and referrers.
                 $link=$base.'/portal.php#reset='.$reset;
                 $body="A password reset was requested for your TechTrack account.\r\n\r\nOpen this link to choose a new password:\r\n$link\r\n\r\nThis link expires in 30 minutes and can only be used once. If you did not request this, ignore this email.\r\n";
-                if (!@mail($u['email'],'Reset your TechTrack password',$body,['From'=>$from,'Content-Type'=>'text/plain; charset=UTF-8'])) {
+                if (!send_account_email($u['email'],'Reset your TechTrack password',$body)) {
                     query('DELETE FROM password_resets WHERE user_id=? AND token_hash=?',[$u['id'],$hash]);
                     error_log('Password recovery email could not be handed to the mail server.');
                 }

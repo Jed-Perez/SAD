@@ -27,6 +27,7 @@ PHP = r'C:\xampp\php\php.exe'
 DB = 'ncpcs_test_' + secrets.token_hex(5)
 ENV = {**os.environ, 'DB_NAME': DB, 'OLLAMA_ENABLED': '0', 'OLLAMA_API_KEY': '', 'AI_DEFAULT_PROVIDER': 'auto', 'OPENAI_API_KEY': '', 'GEMINI_API_KEY': '', 'META_API_KEY': '', 'META_API_KEYS': '', 'GOOGLE_CLIENT_ID': 'test-client.apps.googleusercontent.com', 'GOOGLE_CLIENT_SECRET': 'test-secret'}
 SERVER = None
+ENV['MAIL_TRANSPORT']='mail' # Keep recovery tests on their local sink, never a configured external SMTP account.
 MAILBOX = None
 UPLOAD_TEMP = None
 PORT = 0
