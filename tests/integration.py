@@ -494,6 +494,8 @@ try:
         check(admin.request('report.php?type='+report)[0]==200,'Printable report '+report)
     from advanced_checks import advanced_checks
     advanced_checks(Client, php, check, admin, customer, other, technician, tid, bid, ENV)
+    from blueprint_delete import blueprint_delete_checks
+    blueprint_delete_checks(Client, php, check, admin, customer, other, technician, bid, PORT, PASSWORD)
     recovery_checks(Client, php, check, MAILBOX)
     audit_checks(Client, php, check, admin)
     # The browser uses the same isolated database; no real records are touched.

@@ -33,7 +33,7 @@ try {
     if (in_array($action,['services','service_create','service','service_update'],true)) handle_services_action($action,$data,$u,$staff);
     if (in_array($action,['threads','messages','message_send','message_unread'],true)) handle_messages_action($action,$data,$u,$staff);
     if (in_array($action,['settings','settings_save','audit','user_logs'],true)) handle_settings_action($action,$data,$u,$config);
-    if (in_array($action,['blueprints','blueprint','blueprint_upload','blueprint_analyze','blueprint_review'],true)) handle_planner_action($action,$data,$u,$staff);
+    if (in_array($action,['blueprints','blueprint','blueprint_upload','blueprint_analyze','blueprint_review','blueprint_delete'],true)) handle_planner_action($action,$data,$u,$staff);
     fail('Action not found.',404);
 } catch (AppError $e) {
     try{if(db()->inTransaction())db()->rollBack();}catch(Throwable $ignored){}

@@ -2,6 +2,11 @@
 declare(strict_types=1);
 function handle_planner_action(string $action,array $data,array $u,bool $staff): never {
     switch ($action) {
+    case 'blueprint_delete':
+        require_user(['admin','staff','customer']);
+        require_once __DIR__.'/delete.php';
+        delete_blueprint(integer_field($data,'id',1),$u);
+        json_out(['ok'=>true]);
     case 'blueprints':
         require_user(['admin','staff','customer']);
         json_out(['items'=>query('SELECT b.id,b.title,b.status,b.budget,b.created_at,b.reviewed_at,u.name customer_name FROM blueprints b JOIN users u ON u.id=b.user_id'.($staff?'':' WHERE b.user_id=?').' ORDER BY b.id DESC',$staff?[]:[$u['id']])->fetchAll(),'ai_ready'=>(bool)configured_ai_providers(),'ai_providers'=>configured_ai_providers(),'ai_auto_providers'=>automatic_ai_providers(),'ai_default_provider'=>default_ai_provider()]);

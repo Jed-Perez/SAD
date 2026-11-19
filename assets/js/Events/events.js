@@ -7,7 +7,9 @@ document.addEventListener('click',async e=>{
  case 'restore-product':showForm('Restore product',`<p class="mt-3">Return <strong>${esc(cache.products.find(p=>Number(p.id)===id)?.name||'this product')}</strong> to the active catalog? Its existing stock history and price will be retained.</p>`,async()=>{await api('product_restore',{id});await route();notice('Product restored.');},'Restore');break;
  case 'new-customer':editUser(null,true);break;case 'new-user':editUser();break;case 'edit-user':editUser(id);break;
  case 'new-service':await newService();break;case 'service-detail':await serviceDetail(id);break;
- case 'upload-blueprint':uploadBlueprint();break;case 'print':window.print();break;
+ case 'upload-blueprint':uploadBlueprint();break;
+ case 'delete-blueprint':deleteBlueprint(id,b.dataset.title);break;
+ case 'print':window.print();break;
  case 'customer-history':{const d=await api('services');$('#modal-title').textContent='Customer service history';$('#modal-body').innerHTML=d.items.filter(s=>Number(s.customer_id)===id).length?serviceTable(d.items.filter(s=>Number(s.customer_id)===id)):empty('No services recorded','This customer has not requested a service yet.','tool');modal.show();break;}
  case 'movements':{const d=await api('movements');$('#modal-title').textContent='Stock movement history · latest 200';$('#modal-body').innerHTML=`<div class="table-responsive"><table class="table"><thead><tr><th>Product</th><th>Change</th><th>Reason</th><th>Recorded by</th></tr></thead><tbody>${d.items.map(m=>`<tr><td>${esc(m.product_name)}<small>${datetime(m.created_at)}</small></td><td>${Number(m.quantity)>0?'+':''}${m.quantity}</td><td>${esc(m.reason)}${m.service_id?`<small>SR-${m.service_id}</small>`:''}</td><td>${esc(m.user_name)}</td></tr>`).join('')}</tbody></table></div>`;modal.show();break;}
  case 'audit':location.hash='audit-logs';break;
